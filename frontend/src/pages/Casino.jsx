@@ -15,11 +15,6 @@ import {
   generateMrxSsoToken,
   hasAuthToken,
 } from "../services/api";
-import {
-  findMockInoutGame,
-  MOCK_GAMES_ENABLED,
-  MOCK_INOUT_GAMES,
-} from "../data/mockGames.js";
 import kenoThumb from "../assets/games/keno.png";
 import aviatorThumb from "../assets/games/aviator.png";
 import bingoThumb from "../assets/games/bingo.png";
@@ -232,14 +227,6 @@ function Casino() {
       return;
     }
 
-    const mockInout = findMockInoutGame(launchId);
-    if (mockInout) {
-      handledLaunchRef.current = launchId;
-      clearLaunchParam();
-      setFrame({ title: mockInout.title, poster: mockInout.iconUrl });
-      return;
-    }
-
     // Promoted InOut tiles/nav items launch immediately — same gameMode the
     // provider expects, without waiting on catalog reconciliation.
     const navInout = NAV_INOUT_LAUNCHES[launchId];
@@ -272,17 +259,12 @@ function Casino() {
     handlePlay,
   ]);
 
-  const inoutGames = useMemo(() => {
-    const live = casinoEnabled === true ? games : [];
-    if (!MOCK_GAMES_ENABLED) return live;
-    const seen = new Set(live.map((game) => game.gameMode));
-    return [
-      ...live,
-      ...MOCK_INOUT_GAMES.filter((game) => !seen.has(game.gameMode)),
-    ];
-  }, [casinoEnabled, games]);
+  const inoutGames = useMemo(
+    () => (casinoEnabled === true ? games : []),
+    [casinoEnabled, games],
+  );
 
-  const showInout = casinoEnabled === true || MOCK_GAMES_ENABLED;
+  const showInout = casinoEnabled === true;
 
   return (
     <PageContainer>
