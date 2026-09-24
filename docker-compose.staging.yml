@@ -1,0 +1,73 @@
+# Staging stack on the same VPS as production (isolated DB, Redis, and host port).
+#
+# Prerequisites:
+#   cp backend/.env.production.example backend/.env.staging
+#   Edit backend/.env.staging (staging JWT, CORS, InOut sandbox keys, etc.)
+#
+# Start (always use -p so volumes/networks do not collide with prod):
+#   docker compose -p michubet-staging -f docker-compose.staging.yml up -d --build
+#
+# First-time DB schema + seed:
+#   docker compose -p michubet-staging -f docker-compose.staging.yml exec backend npx prisma db push
+#   docker compose -p michubet-staging -f docker-compose.staging.yml exec backend npx prisma db seed
+#
+# Public URL (nginx): https://staging-api.asmatbet.com → 127.0.0.1:3002
+# InOut callback example:
+#   https://staging-api.asmatbet.com/api/integrations/inout/webhook
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo_staging_data:/data/db
+    healthcheck:
+      test: |
+        mongosh --eval "try { rs.status().ok } catch(e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }" --quiet
+      interval: 5s
+      timeout: 30s
+      retries: 30
+      start_period: 15s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_staging_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.staging
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # Staging: no fixture ingestion / bootstrap on API startup.
+      ENABLE_API_FOOTBALL_CRON: "false"
+      RUN_WORKER_INLINE: "false"
+      FORCE_BOOTSTRAP: "false"
+      DATABASE_URL: mongodb://mongo:27017/kizzabet_staging?replicaSet=rs0&directConnection=true
+      REDIS_URL: redis://redis:6379
+      REDIS_KEY_PREFIX: kizzabet-staging
+    ports:
+      - "127.0.0.1:3002:3001"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["node", "index.js"]
+
+volumes:
+  mongo_staging_data:
+  redis_staging_data:

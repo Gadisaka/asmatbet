@@ -1,0 +1,6 @@
+{
+  "comPort": "",
+  "baudRate": 115200,
+  "printerName": "POS80",
+  "apiKey": "michotbet-local-print-v1"
+}

@@ -1,0 +1,1186 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Orbitron:wght@500;700&display=swap");
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    font-family: "Barlow", sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    --sb-bg-0: #000000;
+    --sb-bg-1: #000000;
+    --sb-bg-2: #111111;
+    --sb-bg-page: #000000;
+    --sb-bg-card: #141414;
+    --sb-bg-card-elevated: #1a1a1a;
+    --sb-surface: #141414;
+    --sb-surface-soft: #1a1a1a;
+    --sb-border: rgba(255, 255, 255, 0.08);
+    --sb-border-strong: rgba(255, 255, 255, 0.14);
+    --sb-text: #ffffff;
+    --sb-text-muted: rgba(255, 255, 255, 0.72);
+    --sb-header-bg: #000000;
+    --sb-nav-bg: #000000;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #ffffff;
+    --sb-on-accent: #000000;
+    --sb-accent-fill: #8fcf4a;
+    --sb-accent-ink: var(--sb-accent-fill);
+    --sb-accent-fill-hover: color-mix(in srgb, var(--sb-accent-fill) 82%, #000);
+    --sb-accent: var(--sb-accent-fill);
+    --sb-accent-border: var(--sb-accent-fill);
+    --sb-accent-soft: color-mix(in srgb, var(--sb-accent-fill) 55%, #fff);
+    --sb-positive: var(--sb-accent-fill);
+    --sb-accent-surface: color-mix(
+      in srgb,
+      var(--sb-accent-fill) 16%,
+      var(--sb-bg-page)
+    );
+    --sb-accent-surface-deep: color-mix(
+      in srgb,
+      var(--sb-accent-fill) 10%,
+      var(--sb-bg-0)
+    );
+    --sb-accent-surface-alt: color-mix(
+      in srgb,
+      var(--sb-accent-fill) 22%,
+      var(--sb-bg-page)
+    );
+    --sb-accent-text-on-dark: var(--sb-header-fg);
+    --sb-accent-text-muted: var(--sb-text-muted);
+    --sb-accent-text-soft: var(--sb-accent-soft);
+    color-scheme: dark;
+  }
+
+  /*
+    Sticky side columns use this as their viewport offset.
+    TopHeader is one row: py-1.5 (12px) + logo link py-1 (8px) + 1px border,
+    and the logo box is h-12 (48px) from lg, h-14 (56px) from xl.
+  */
+  @media (min-width: 1024px) {
+    :root {
+      --sb-sticky-header: 69px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    :root {
+      --sb-sticky-header: 77px;
+    }
+  }
+
+  html[data-theme="light"] {
+    --sb-bg-0: #e8eeea;
+    --sb-bg-1: #f4f8f6;
+    --sb-bg-2: #dce6e0;
+    --sb-bg-page: #f4f8f6;
+    --sb-bg-card: #ffffff;
+    --sb-bg-card-elevated: #ffffff;
+    --sb-surface: #ffffff;
+    --sb-surface-soft: #eef3f0;
+    --sb-border: rgba(15, 42, 46, 0.1);
+    --sb-border-strong: rgba(15, 42, 46, 0.18);
+    --sb-text: #0a1a1c;
+    --sb-text-muted: #1a2e32;
+    --sb-header-bg: #0a3a40;
+    --sb-nav-bg: #0a3a40;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #ffffff;
+    --sb-on-accent: #042818;
+    --sb-accent-fill: #0fb56a;
+    --sb-accent-ink: #087a48;
+    color-scheme: light;
+  }
+
+  html[data-theme="evergreen"] {
+    --sb-bg-0: #08252b;
+    --sb-bg-1: #08252b;
+    --sb-bg-2: #123136;
+    --sb-bg-page: #08252b;
+    --sb-bg-card: #163c41;
+    --sb-bg-card-elevated: #1a464c;
+    --sb-surface: #163c41;
+    --sb-surface-soft: #152f32;
+    --sb-border: rgba(255, 255, 255, 0.08);
+    --sb-border-strong: rgba(255, 255, 255, 0.14);
+    --sb-text: #ebebeb;
+    --sb-text-muted: rgba(235, 235, 235, 0.72);
+    --sb-header-bg: #123136;
+    --sb-nav-bg: #163c41;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #ffffff;
+    --sb-on-accent: #002016;
+    --sb-accent-fill: #06ef8e;
+  }
+
+  html[data-theme="ethiopia"] {
+    --sb-bg-0: #071d0e;
+    --sb-bg-1: #071d0e;
+    --sb-bg-2: #0e2a17;
+    --sb-bg-page: #071d0e;
+    --sb-bg-card: #0e2a17;
+    --sb-bg-card-elevated: #11321c;
+    --sb-surface: #0e2a17;
+    --sb-surface-soft: #11321c;
+    --sb-border: rgba(253, 248, 216, 0.1);
+    --sb-border-strong: rgba(253, 248, 216, 0.18);
+    --sb-text: #fdf8d8;
+    --sb-text-muted: rgba(253, 248, 216, 0.72);
+    --sb-header-bg: #066b27;
+    --sb-nav-bg: #0e2a17;
+    --sb-header-fg: #fef9d7;
+    --sb-nav-fg: #fef9d7;
+    --sb-on-accent: #1a1400;
+    --sb-accent-fill: #fbdb09;
+  }
+
+  html[data-theme="sunset"] {
+    --sb-bg-0: #0f0f0f;
+    --sb-bg-1: #171717;
+    --sb-bg-2: #212121;
+    --sb-bg-page: #171717;
+    --sb-bg-card: #212121;
+    --sb-bg-card-elevated: #2a2a2a;
+    --sb-surface: #212121;
+    --sb-surface-soft: #121212;
+    --sb-border: rgba(255, 255, 255, 0.08);
+    --sb-border-strong: rgba(255, 255, 255, 0.14);
+    --sb-text: #ebebeb;
+    --sb-text-muted: rgba(235, 235, 235, 0.72);
+    --sb-header-bg: #0f0f0f;
+    --sb-nav-bg: #212121;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #ffffff;
+    --sb-on-accent: #1a0c00;
+    --sb-accent-fill: #f98006;
+  }
+
+  html[data-theme="navy"] {
+    --sb-bg-0: #000000;
+    --sb-bg-1: #000000;
+    --sb-bg-2: #111111;
+    --sb-bg-page: #000000;
+    --sb-bg-card: #141414;
+    --sb-bg-card-elevated: #1a1a1a;
+    --sb-surface: #141414;
+    --sb-surface-soft: #1a1a1a;
+    --sb-border: rgba(255, 255, 255, 0.08);
+    --sb-border-strong: rgba(255, 255, 255, 0.14);
+    --sb-text: #ffffff;
+    --sb-text-muted: rgba(255, 255, 255, 0.72);
+    --sb-header-bg: #000000;
+    --sb-nav-bg: #000000;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #ffffff;
+    --sb-on-accent: #000000;
+    --sb-accent-fill: #8fcf4a;
+  }
+
+  html[data-theme="telegram"] {
+    --sb-bg-0: #d7e0e6;
+    --sb-bg-1: #e7ecef;
+    --sb-bg-2: #c5d3dc;
+    --sb-bg-page: #e7ecef;
+    --sb-bg-card: #ffffff;
+    --sb-bg-card-elevated: #ffffff;
+    --sb-surface: #ffffff;
+    --sb-surface-soft: #e6ecf0;
+    --sb-border: rgba(29, 41, 48, 0.1);
+    --sb-border-strong: rgba(29, 41, 48, 0.18);
+    --sb-text: #101820;
+    --sb-text-muted: #243039;
+    --sb-header-bg: #28a0dc;
+    --sb-nav-bg: #ffffff;
+    --sb-header-fg: #04263a;
+    --sb-nav-fg: #1d2930;
+    --sb-on-accent: #04263a;
+    --sb-accent-fill: #28a0dc;
+    --sb-accent-ink: #0a6396;
+    color-scheme: light;
+  }
+
+  html[data-theme="stake"] {
+    --sb-bg-0: #0e121b;
+    --sb-bg-1: #141924;
+    --sb-bg-2: #1d2230;
+    --sb-bg-page: #141924;
+    --sb-bg-card: #1d2230;
+    --sb-bg-card-elevated: #232a3b;
+    --sb-surface: #1d2230;
+    --sb-surface-soft: #191e29;
+    --sb-border: rgba(226, 230, 233, 0.08);
+    --sb-border-strong: rgba(226, 230, 233, 0.14);
+    --sb-text: #e2e6e9;
+    --sb-text-muted: rgba(226, 230, 233, 0.72);
+    --sb-header-bg: #0e121b;
+    --sb-nav-bg: #1d2230;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #ffffff;
+    --sb-on-accent: #ffffff;
+    --sb-accent-fill: #1a7dff;
+  }
+
+  html[data-theme="default"] {
+    --sb-bg-0: #101114;
+    --sb-bg-1: #101114;
+    --sb-bg-2: #181b20;
+    --sb-bg-page: #101114;
+    --sb-bg-card: #181b20;
+    --sb-bg-card-elevated: #1e2228;
+    --sb-surface: #181b20;
+    --sb-surface-soft: #14161a;
+    --sb-border: rgba(249, 241, 220, 0.08);
+    --sb-border-strong: rgba(249, 241, 220, 0.16);
+    --sb-text: #f9f1dc;
+    --sb-text-muted: rgba(249, 241, 220, 0.72);
+    --sb-header-bg: #14161a;
+    --sb-nav-bg: #181b20;
+    --sb-header-fg: #ffb700;
+    --sb-nav-fg: #ffb700;
+    --sb-on-accent: #1a1200;
+    --sb-accent-fill: #ffb700;
+  }
+
+  html[data-theme="carnival"] {
+    --sb-bg-0: #e6e6e6;
+    --sb-bg-1: #f0f0f0;
+    --sb-bg-2: #d9d9d9;
+    --sb-bg-page: #f0f0f0;
+    --sb-bg-card: #ffffff;
+    --sb-bg-card-elevated: #ffffff;
+    --sb-surface: #ffffff;
+    --sb-surface-soft: #f1e4e6;
+    --sb-border: rgba(31, 31, 31, 0.1);
+    --sb-border-strong: rgba(31, 31, 31, 0.18);
+    --sb-text: #111111;
+    --sb-text-muted: #242424;
+    --sb-header-bg: #b60c22;
+    --sb-nav-bg: #ffffff;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #1f1f1f;
+    --sb-on-accent: #1a1400;
+    --sb-accent-fill: #fbce04;
+    --sb-accent-ink: #6e4e00;
+    color-scheme: light;
+  }
+
+  html[data-theme="midnight"] {
+    --sb-bg-0: #141b29;
+    --sb-bg-1: #141b29;
+    --sb-bg-2: #1d2635;
+    --sb-bg-page: #141b29;
+    --sb-bg-card: #202a3c;
+    --sb-bg-card-elevated: #253248;
+    --sb-surface: #202a3c;
+    --sb-surface-soft: #19212e;
+    --sb-border: rgba(224, 230, 235, 0.08);
+    --sb-border-strong: rgba(224, 230, 235, 0.14);
+    --sb-text: #e0e6eb;
+    --sb-text-muted: rgba(224, 230, 235, 0.72);
+    --sb-header-bg: #1d2635;
+    --sb-nav-bg: #202a3c;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #ffffff;
+    --sb-on-accent: #ffffff;
+    --sb-accent-fill: #3c94dd;
+  }
+
+  html[data-theme="golden"] {
+    --sb-bg-0: #f0f0f0;
+    --sb-bg-1: #ffffff;
+    --sb-bg-2: #e8e8e8;
+    --sb-bg-page: #ffffff;
+    --sb-bg-card: #f7f7f7;
+    --sb-bg-card-elevated: #ffffff;
+    --sb-surface: #f7f7f7;
+    --sb-surface-soft: #ede8de;
+    --sb-border: rgba(33, 33, 33, 0.1);
+    --sb-border-strong: rgba(33, 33, 33, 0.18);
+    --sb-text: #111111;
+    --sb-text-muted: #252525;
+    --sb-header-bg: #212121;
+    --sb-nav-bg: #ffffff;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #212121;
+    --sb-on-accent: #1a1200;
+    --sb-accent-fill: #fab300;
+    --sb-accent-ink: #6f5000;
+    color-scheme: light;
+  }
+
+  html[data-theme="facebook"] {
+    --sb-bg-0: #d5dde8;
+    --sb-bg-1: #e1e7ef;
+    --sb-bg-2: #c5d0de;
+    --sb-bg-page: #e1e7ef;
+    --sb-bg-card: #ffffff;
+    --sb-bg-card-elevated: #ffffff;
+    --sb-surface: #ffffff;
+    --sb-surface-soft: #e4eaf1;
+    --sb-border: rgba(29, 37, 48, 0.1);
+    --sb-border-strong: rgba(29, 37, 48, 0.18);
+    --sb-text: #10151c;
+    --sb-text-muted: #232b36;
+    --sb-header-bg: #1876f2;
+    --sb-nav-bg: #ffffff;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #1d2530;
+    --sb-on-accent: #ffffff;
+    --sb-accent-fill: #1876f2;
+    --sb-accent-ink: #0d52b8;
+    color-scheme: light;
+  }
+
+  html[data-theme="tiktok"] {
+    --sb-bg-0: #0d0d0d;
+    --sb-bg-1: #121212;
+    --sb-bg-2: #1f1f1f;
+    --sb-bg-page: #121212;
+    --sb-bg-card: #1f1f1f;
+    --sb-bg-card-elevated: #262626;
+    --sb-surface: #1f1f1f;
+    --sb-surface-soft: #1a1a1a;
+    --sb-border: rgba(242, 242, 242, 0.08);
+    --sb-border-strong: rgba(242, 242, 242, 0.14);
+    --sb-text: #f2f2f2;
+    --sb-text-muted: rgba(242, 242, 242, 0.72);
+    --sb-header-bg: #0d0d0d;
+    --sb-nav-bg: #1f1f1f;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #ffffff;
+    --sb-on-accent: #ffffff;
+    --sb-accent-fill: #fe2a54;
+  }
+
+  html[data-theme="safari"] {
+    --sb-bg-0: #e8e8e8;
+    --sb-bg-1: #f2f2f2;
+    --sb-bg-2: #dcdcdc;
+    --sb-bg-page: #f2f2f2;
+    --sb-bg-card: #ffffff;
+    --sb-bg-card-elevated: #ffffff;
+    --sb-surface: #ffffff;
+    --sb-surface-soft: #dfeced;
+    --sb-border: rgba(51, 51, 51, 0.1);
+    --sb-border-strong: rgba(51, 51, 51, 0.18);
+    --sb-text: #1a1a1a;
+    --sb-text-muted: #2a2a2a;
+    --sb-header-bg: #007036;
+    --sb-nav-bg: #ffffff;
+    --sb-header-fg: #ffffff;
+    --sb-nav-fg: #333333;
+    --sb-on-accent: #1a1a00;
+    --sb-accent-fill: #ffff00;
+    --sb-accent-ink: #5c5600;
+    color-scheme: light;
+  }
+
+  html:is(
+    [data-theme="light"],
+    [data-theme="carnival"],
+    [data-theme="telegram"],
+    [data-theme="golden"],
+    [data-theme="facebook"],
+    [data-theme="safari"]
+  ) {
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+    --sb-accent-soft: var(--sb-accent-ink);
+    --sb-accent-text-soft: var(--sb-accent-ink);
+  }
+
+  html:is(
+    [data-theme="light"],
+    [data-theme="carnival"],
+    [data-theme="telegram"],
+    [data-theme="golden"],
+    [data-theme="facebook"],
+    [data-theme="safari"]
+  )
+    #root {
+    font-weight: 600;
+  }
+
+  html:is(
+    [data-theme="light"],
+    [data-theme="carnival"],
+    [data-theme="telegram"],
+    [data-theme="golden"],
+    [data-theme="facebook"],
+    [data-theme="safari"]
+  )
+    .font-medium {
+    font-weight: 700;
+  }
+
+  html:is(
+    [data-theme="light"],
+    [data-theme="carnival"],
+    [data-theme="telegram"],
+    [data-theme="golden"],
+    [data-theme="facebook"],
+    [data-theme="safari"]
+  )
+    .font-semibold {
+    font-weight: 800;
+  }
+
+  html,
+  body,
+  #root {
+    @apply m-0 h-auto min-h-full w-full max-w-full overflow-x-clip;
+  }
+
+  body {
+    background:
+      radial-gradient(
+        1200px 680px at 55% -120px,
+        color-mix(in srgb, var(--sb-accent-fill) 12%, transparent),
+        transparent 66%
+      ),
+      linear-gradient(180deg, var(--sb-bg-page) 0%, var(--sb-bg-0) 58%);
+    color: var(--sb-text);
+  }
+}
+
+@layer components {
+  .sb-card {
+    background: linear-gradient(
+      180deg,
+      var(--sb-bg-card-elevated) 0%,
+      var(--sb-bg-card) 100%
+    );
+    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.42);
+  }
+
+  .sportsbook-surface {
+    background: linear-gradient(
+      180deg,
+      var(--sb-bg-card-elevated) 0%,
+      var(--sb-bg-card) 100%
+    );
+    border: 1px solid var(--sb-border);
+    box-shadow: 0 18px 32px rgba(0, 0, 0, 0.48);
+  }
+}
+
+@layer utilities {
+  @keyframes deposit-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-deposit-panel {
+    animation: deposit-panel-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes deposit-method-reel {
+    0%,
+    22% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1);
+    }
+    33%,
+    55% {
+      transform: translateY(-25%);
+      animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1);
+    }
+    66%,
+    88% {
+      transform: translateY(-50%);
+      animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1);
+    }
+    100% {
+      transform: translateY(-75%);
+    }
+  }
+
+  .deposit-method-reel {
+    animation: deposit-method-reel 7.2s infinite;
+  }
+
+  @keyframes notification-bell-ring {
+    0%,
+    42%,
+    100% {
+      transform: rotate(0deg);
+    }
+    6% {
+      transform: rotate(16deg);
+    }
+    12% {
+      transform: rotate(-14deg);
+    }
+    18% {
+      transform: rotate(12deg);
+    }
+    24% {
+      transform: rotate(-8deg);
+    }
+    30% {
+      transform: rotate(4deg);
+    }
+    36% {
+      transform: rotate(0deg);
+    }
+  }
+
+  .notification-bell-ring {
+    transform-origin: top center;
+    animation: notification-bell-ring 1.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .deposit-method-reel,
+    .notification-bell-ring {
+      animation: none;
+    }
+  }
+
+  @keyframes bet-slip-row-enter {
+    0% {
+      opacity: 0;
+      transform: translateX(-22px);
+    }
+    58% {
+      opacity: 1;
+      transform: translateX(8px);
+    }
+    76% {
+      transform: translateX(-4px);
+    }
+    90% {
+      transform: translateX(2px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-bet-slip-row-enter {
+    animation: bet-slip-row-enter 0.56s cubic-bezier(0.33, 1, 0.68, 1) both;
+  }
+}
+
+/* Public check-coupon: scalloped "torn paper" top & bottom edges on the receipt
+   card. The mask punches half-circles out of the card so the dark page shows
+   through, mimicking a perforated thermal receipt. Keep vertical padding >= 8px
+   so content is never clipped by the notches. */
+.coupon-receipt {
+  -webkit-mask:
+    radial-gradient(circle at 50% 0, transparent 7px, #000 7.5px) repeat-x 0 0 /
+      15px 51%,
+    radial-gradient(circle at 50% 100%, transparent 7px, #000 7.5px) repeat-x 0
+      100% / 15px 51%;
+  mask:
+    radial-gradient(circle at 50% 0, transparent 7px, #000 7.5px) repeat-x 0 0 /
+      15px 51%,
+    radial-gradient(circle at 50% 100%, transparent 7px, #000 7.5px) repeat-x 0
+      100% / 15px 51%;
+}
+
+.coupon-receipt__ticket-status--won {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.coupon-receipt__ticket-status--lost {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.coupon-receipt__ticket-status--pending {
+  background: #f59e0b;
+  color: #111111;
+}
+
+.coupon-receipt__ticket-status--cancelled {
+  background: #475569;
+  color: #ffffff;
+}
+
+.coupon-receipt__leg--won {
+  background: #bbf7d0;
+  box-shadow: inset 4px 0 0 #16a34a;
+  color: #14532d;
+}
+
+.coupon-receipt__leg--lost {
+  background: #fecaca;
+  box-shadow: inset 4px 0 0 #dc2626;
+  color: #7f1d1d;
+}
+
+.coupon-receipt__leg--postponed {
+  background: #fde68a;
+  box-shadow: inset 4px 0 0 #f59e0b;
+  color: #78350f;
+}
+
+.coupon-receipt__leg--notplayed {
+  background: transparent;
+  color: #0a0a0a;
+}
+
+.coupon-receipt__summary-highlight {
+  background: #0f6b35;
+  color: #ffffff;
+  box-shadow: inset 4px 0 0 #22c55e;
+}
+
+.coupon-receipt__summary-highlight span {
+  color: inherit;
+}
+
+/*
+  Clip horizontal overflow without a scrollport. overflow-x: hidden computes
+  overflow-y to auto, which traps position: sticky so the header and side
+  columns scroll away instead of sticking to the viewport.
+*/
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/*
+  Light themes reuse dark-UI utilities (white, pale gray, bright accent).
+  Those colors disappear on white cards — yellow accents (Carnival, Golden,
+  Safari) are the worst. Unlayered so this beats Tailwind utilities.
+  A dark panel keeps light ink. Only a real background class counts, not
+  hover:bg-..., so rows that merely darken on hover stay dark-ink.
+*/
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  .text-white,
+  .text-white\/70,
+  .text-white\/55,
+  .text-\[\#ffffff\],
+  .text-\[rgba\(255\,255\,255\,0\.72\)\],
+  .text-\[rgba\(255\,255\,255\,0\.5\)\],
+  .text-\[rgba\(255\,255\,255\,0\.85\)\],
+  .text-\[\#f3f4ff\],
+  .text-\[\#d3d9eb\],
+  .text-\[\#dce2f0\],
+  .text-\[\#edf1ff\],
+  .text-\[\#d9dded\],
+  .text-\[\#d4dcf0\],
+  .text-\[\#c8cad8\],
+  .text-\[\#e8eaf5\],
+  .text-\[\#e8edf8\],
+  .text-\[\#f6f9ff\],
+  .hover\:text-white,
+  .hover\:text-\[\#ffffff\],
+  .hover\:text-\[\#e8eaf5\],
+  .group-hover\:text-\[\#e8eaf5\],
+  .group-hover\:text-\[rgba\(255\,255\,255\,0\.72\)\]
+) {
+  color: var(--sb-text);
+}
+
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  .text-\(--sb-positive\),
+  .text-\(--sb-accent\),
+  .text-\(--sb-accent-fill\),
+  .text-\(--sb-accent-soft\),
+  .text-\(--sb-accent-text-soft\),
+  .text-\(--sb-accent-text-on-dark\)
+) {
+  color: var(--sb-accent-ink);
+}
+
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  .text-\(--sb-text-muted\),
+  .text-\(--sb-accent-text-muted\),
+  .text-\[\#6f7895\],
+  .text-\[\#7f89a4\],
+  .text-\[\#b7c2df\],
+  .text-\[\#91a0c8\],
+  .text-\[\#8b95b2\],
+  .text-\[\#9ea8c6\],
+  .text-\[\#5b6a8f\],
+  .text-\[\#9aaed1\],
+  .text-\[\#6b7a99\],
+  .text-\[\#6e7ea3\],
+  .text-\[\#67799f\],
+  .text-\[\#90a2c7\]
+) {
+  color: var(--sb-text-muted);
+}
+
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-[#0"],
+  [class*=" bg-[#0"],
+  [class^="bg-[#1"],
+  [class*=" bg-[#1"],
+  [class^="bg-[#2"],
+  [class*=" bg-[#2"],
+  [class^="bg-[#3"],
+  [class*=" bg-[#3"],
+  [class^="bg-[#4"],
+  [class*=" bg-[#4"],
+  [class^="bg-black"],
+  [class*=" bg-black"],
+  [class^="from-[#0"],
+  [class*=" from-[#0"],
+  [class^="from-[#1"],
+  [class*=" from-[#1"],
+  [class^="via-[#0"],
+  [class*=" via-[#0"],
+  [class^="via-[#1"],
+  [class*=" via-[#1"],
+  [class^="to-[#0"],
+  [class*=" to-[#0"],
+  [class^="to-[#1"],
+  [class*=" to-[#1"],
+  [class^="bg-[#b91c1c]"],
+  [class*=" bg-[#b91c1c]"],
+  [class^="bg-[#7c3aed]"],
+  [class*=" bg-[#7c3aed]"],
+  [class^="bg-red-600"],
+  [class*=" bg-red-600"],
+  [class^="bg-(--sb-header-bg)"],
+  [class*=" bg-(--sb-header-bg)"]
+) :is(
+  .text-white,
+  .text-white\/70,
+  .text-white\/55,
+  .text-\[\#ffffff\],
+  .text-\[rgba\(255\,255\,255\,0\.72\)\],
+  .text-\[rgba\(255\,255\,255\,0\.5\)\],
+  .text-\[rgba\(255\,255\,255\,0\.85\)\],
+  .text-\[\#f3f4ff\],
+  .text-\[\#d3d9eb\],
+  .text-\[\#dce2f0\],
+  .text-\[\#edf1ff\],
+  .text-\[\#d9dded\],
+  .text-\[\#d4dcf0\],
+  .text-\[\#c8cad8\],
+  .text-\[\#e8eaf5\],
+  .text-\[\#e8edf8\],
+  .text-\[\#f6f9ff\],
+  .hover\:text-white,
+  .hover\:text-\[\#ffffff\],
+  .hover\:text-\[\#e8eaf5\],
+  .group-hover\:text-\[\#e8eaf5\],
+  .group-hover\:text-\[rgba\(255\,255\,255\,0\.72\)\]
+),
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-[#0"],
+  [class*=" bg-[#0"],
+  [class^="bg-[#1"],
+  [class*=" bg-[#1"],
+  [class^="bg-[#2"],
+  [class*=" bg-[#2"],
+  [class^="bg-[#3"],
+  [class*=" bg-[#3"],
+  [class^="bg-[#4"],
+  [class*=" bg-[#4"],
+  [class^="bg-black"],
+  [class*=" bg-black"],
+  [class^="from-[#0"],
+  [class*=" from-[#0"],
+  [class^="from-[#1"],
+  [class*=" from-[#1"],
+  [class^="via-[#0"],
+  [class*=" via-[#0"],
+  [class^="via-[#1"],
+  [class*=" via-[#1"],
+  [class^="to-[#0"],
+  [class*=" to-[#0"],
+  [class^="to-[#1"],
+  [class*=" to-[#1"],
+  [class^="bg-[#b91c1c]"],
+  [class*=" bg-[#b91c1c]"],
+  [class^="bg-[#7c3aed]"],
+  [class*=" bg-[#7c3aed]"],
+  [class^="bg-red-600"],
+  [class*=" bg-red-600"],
+  [class^="bg-(--sb-header-bg)"],
+  [class*=" bg-(--sb-header-bg)"]
+):is(
+  .text-white,
+  .text-white\/70,
+  .text-white\/55,
+  .text-\[\#ffffff\],
+  .text-\[rgba\(255\,255\,255\,0\.72\)\],
+  .text-\[rgba\(255\,255\,255\,0\.5\)\],
+  .text-\[rgba\(255\,255\,255\,0\.85\)\],
+  .text-\[\#f3f4ff\],
+  .text-\[\#d3d9eb\],
+  .text-\[\#dce2f0\],
+  .text-\[\#edf1ff\],
+  .text-\[\#d9dded\],
+  .text-\[\#d4dcf0\],
+  .text-\[\#c8cad8\],
+  .text-\[\#e8eaf5\],
+  .text-\[\#e8edf8\],
+  .text-\[\#f6f9ff\],
+  .hover\:text-white,
+  .hover\:text-\[\#ffffff\],
+  .hover\:text-\[\#e8eaf5\],
+  .group-hover\:text-\[\#e8eaf5\],
+  .group-hover\:text-\[rgba\(255\,255\,255\,0\.72\)\]
+) {
+  color: #f7f8fa;
+}
+
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-[#0"],
+  [class*=" bg-[#0"],
+  [class^="bg-[#1"],
+  [class*=" bg-[#1"],
+  [class^="bg-[#2"],
+  [class*=" bg-[#2"],
+  [class^="bg-[#3"],
+  [class*=" bg-[#3"],
+  [class^="bg-[#4"],
+  [class*=" bg-[#4"],
+  [class^="bg-black"],
+  [class*=" bg-black"],
+  [class^="from-[#0"],
+  [class*=" from-[#0"],
+  [class^="from-[#1"],
+  [class*=" from-[#1"],
+  [class^="via-[#0"],
+  [class*=" via-[#0"],
+  [class^="via-[#1"],
+  [class*=" via-[#1"],
+  [class^="to-[#0"],
+  [class*=" to-[#0"],
+  [class^="to-[#1"],
+  [class*=" to-[#1"],
+  [class^="bg-(--sb-header-bg)"],
+  [class*=" bg-(--sb-header-bg)"]
+) :is(
+  .text-\(--sb-positive\),
+  .text-\(--sb-accent\),
+  .text-\(--sb-accent-fill\),
+  .text-\(--sb-accent-soft\),
+  .text-\(--sb-accent-text-soft\),
+  .text-\(--sb-accent-text-on-dark\)
+),
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-[#0"],
+  [class*=" bg-[#0"],
+  [class^="bg-[#1"],
+  [class*=" bg-[#1"],
+  [class^="bg-[#2"],
+  [class*=" bg-[#2"],
+  [class^="bg-[#3"],
+  [class*=" bg-[#3"],
+  [class^="bg-[#4"],
+  [class*=" bg-[#4"],
+  [class^="bg-black"],
+  [class*=" bg-black"],
+  [class^="from-[#0"],
+  [class*=" from-[#0"],
+  [class^="from-[#1"],
+  [class*=" from-[#1"],
+  [class^="via-[#0"],
+  [class*=" via-[#0"],
+  [class^="via-[#1"],
+  [class*=" via-[#1"],
+  [class^="to-[#0"],
+  [class*=" to-[#0"],
+  [class^="to-[#1"],
+  [class*=" to-[#1"],
+  [class^="bg-(--sb-header-bg)"],
+  [class*=" bg-(--sb-header-bg)"]
+):is(
+  .text-\(--sb-positive\),
+  .text-\(--sb-accent\),
+  .text-\(--sb-accent-fill\),
+  .text-\(--sb-accent-soft\),
+  .text-\(--sb-accent-text-soft\),
+  .text-\(--sb-accent-text-on-dark\)
+) {
+  color: var(--sb-accent-fill);
+}
+
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-[#0"],
+  [class*=" bg-[#0"],
+  [class^="bg-[#1"],
+  [class*=" bg-[#1"],
+  [class^="bg-[#2"],
+  [class*=" bg-[#2"],
+  [class^="bg-[#3"],
+  [class*=" bg-[#3"],
+  [class^="bg-[#4"],
+  [class*=" bg-[#4"],
+  [class^="bg-black"],
+  [class*=" bg-black"],
+  [class^="from-[#0"],
+  [class*=" from-[#0"],
+  [class^="from-[#1"],
+  [class*=" from-[#1"],
+  [class^="via-[#0"],
+  [class*=" via-[#0"],
+  [class^="via-[#1"],
+  [class*=" via-[#1"],
+  [class^="to-[#0"],
+  [class*=" to-[#0"],
+  [class^="to-[#1"],
+  [class*=" to-[#1"],
+  [class^="bg-(--sb-header-bg)"],
+  [class*=" bg-(--sb-header-bg)"]
+) :is(
+  .text-\(--sb-text-muted\),
+  .text-\(--sb-accent-text-muted\),
+  .text-\[\#6f7895\],
+  .text-\[\#7f89a4\],
+  .text-\[\#b7c2df\],
+  .text-\[\#91a0c8\],
+  .text-\[\#8b95b2\],
+  .text-\[\#9ea8c6\],
+  .text-\[\#5b6a8f\],
+  .text-\[\#9aaed1\],
+  .text-\[\#6b7a99\],
+  .text-\[\#6e7ea3\],
+  .text-\[\#67799f\],
+  .text-\[\#90a2c7\]
+),
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-[#0"],
+  [class*=" bg-[#0"],
+  [class^="bg-[#1"],
+  [class*=" bg-[#1"],
+  [class^="bg-[#2"],
+  [class*=" bg-[#2"],
+  [class^="bg-[#3"],
+  [class*=" bg-[#3"],
+  [class^="bg-[#4"],
+  [class*=" bg-[#4"],
+  [class^="bg-black"],
+  [class*=" bg-black"],
+  [class^="from-[#0"],
+  [class*=" from-[#0"],
+  [class^="from-[#1"],
+  [class*=" from-[#1"],
+  [class^="via-[#0"],
+  [class*=" via-[#0"],
+  [class^="via-[#1"],
+  [class*=" via-[#1"],
+  [class^="to-[#0"],
+  [class*=" to-[#0"],
+  [class^="to-[#1"],
+  [class*=" to-[#1"],
+  [class^="bg-(--sb-header-bg)"],
+  [class*=" bg-(--sb-header-bg)"]
+):is(
+  .text-\(--sb-text-muted\),
+  .text-\(--sb-accent-text-muted\),
+  .text-\[\#6f7895\],
+  .text-\[\#7f89a4\],
+  .text-\[\#b7c2df\],
+  .text-\[\#91a0c8\],
+  .text-\[\#8b95b2\],
+  .text-\[\#9ea8c6\],
+  .text-\[\#5b6a8f\],
+  .text-\[\#9aaed1\],
+  .text-\[\#6b7a99\],
+  .text-\[\#6e7ea3\],
+  .text-\[\#67799f\],
+  .text-\[\#90a2c7\]
+) {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* The element’s own light surface wins over a dark ancestor. */
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-(--sb-accent-surface)"],
+  [class*=" bg-(--sb-accent-surface)"],
+  [class^="bg-(--sb-bg-card)"],
+  [class*=" bg-(--sb-bg-card)"],
+  [class^="bg-(--sb-bg-page)"],
+  [class*=" bg-(--sb-bg-page)"],
+  [class^="bg-(--sb-bg-0)"],
+  [class*=" bg-(--sb-bg-0)"],
+  [class^="bg-(--sb-bg-1)"],
+  [class*=" bg-(--sb-bg-1)"],
+  [class^="bg-(--sb-bg-2)"],
+  [class*=" bg-(--sb-bg-2)"],
+  [class^="bg-[var(--sb-accent-surface)]"],
+  [class*=" bg-[var(--sb-accent-surface)]"]
+):is(
+  .text-white,
+  .text-\[\#ffffff\],
+  .text-\[rgba\(255\,255\,255\,0\.72\)\],
+  .text-\[rgba\(255\,255\,255\,0\.5\)\],
+  .text-\(--sb-accent-text-on-dark\)
+) {
+  color: var(--sb-text);
+}
+
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-(--sb-accent-surface)"],
+  [class*=" bg-(--sb-accent-surface)"],
+  [class^="bg-(--sb-bg-card)"],
+  [class*=" bg-(--sb-bg-card)"],
+  [class^="bg-(--sb-bg-page)"],
+  [class*=" bg-(--sb-bg-page)"],
+  [class^="bg-(--sb-bg-0)"],
+  [class*=" bg-(--sb-bg-0)"],
+  [class^="bg-(--sb-bg-1)"],
+  [class*=" bg-(--sb-bg-1)"],
+  [class^="bg-(--sb-bg-2)"],
+  [class*=" bg-(--sb-bg-2)"],
+  [class^="bg-[var(--sb-accent-surface)]"],
+  [class*=" bg-[var(--sb-accent-surface)]"]
+):is(
+  .text-\(--sb-positive\),
+  .text-\(--sb-accent\),
+  .text-\(--sb-accent-fill\),
+  .text-\(--sb-accent-soft\),
+  .text-\(--sb-accent-text-soft\)
+) {
+  color: var(--sb-accent-ink);
+}
+
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-(--sb-accent-surface)"],
+  [class*=" bg-(--sb-accent-surface)"],
+  [class^="bg-(--sb-bg-card)"],
+  [class*=" bg-(--sb-bg-card)"],
+  [class^="bg-(--sb-bg-page)"],
+  [class*=" bg-(--sb-bg-page)"],
+  [class^="bg-(--sb-bg-0)"],
+  [class*=" bg-(--sb-bg-0)"],
+  [class^="bg-(--sb-bg-1)"],
+  [class*=" bg-(--sb-bg-1)"],
+  [class^="bg-(--sb-bg-2)"],
+  [class*=" bg-(--sb-bg-2)"],
+  [class^="bg-[var(--sb-accent-surface)]"],
+  [class*=" bg-[var(--sb-accent-surface)]"]
+):is(
+  .text-\(--sb-text-muted\),
+  .text-\(--sb-accent-text-muted\),
+  .text-\[\#9ea8c6\]
+) {
+  color: var(--sb-text-muted);
+}
+
+/* Header chips use a light fill on light themes, so white header ink fades. */
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-(--sb-bg-2)"],
+  [class*=" bg-(--sb-bg-2)"]
+):is(
+  .text-\(--sb-header-fg\),
+  .text-\(--sb-header-fg\)\/72
+),
+html:is(
+  [data-theme="light"],
+  [data-theme="carnival"],
+  [data-theme="telegram"],
+  [data-theme="golden"],
+  [data-theme="facebook"],
+  [data-theme="safari"]
+) :is(
+  [class^="bg-(--sb-bg-2)"],
+  [class*=" bg-(--sb-bg-2)"]
+) :is(
+  .text-\(--sb-header-fg\),
+  .text-\(--sb-header-fg\)\/72,
+  .text-\[rgba\(255\,255\,255\,0\.72\)\]
+) {
+  color: var(--sb-text);
+}

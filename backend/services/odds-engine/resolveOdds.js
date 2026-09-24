@@ -1,0 +1,513 @@
+import { resolveMarketState } from "./marketState.js";
+import { buildPrematchMarketVersion } from "./versioning.js";
+import { perfTimed } from "../../lib/perfTiming.js";
+import {
+  isLiveLineMissingRequiredTimestamp,
+  isLivePriceGuardMarket,
+  isPriceStale,
+} from "../providers/oddspapi/liveOddsView.js";
+
+function isStaleLiveOneXTwo(oddLine, fixture) {
+  const name = String(oddLine?.market?.name || "").toLowerCase().trim();
+  if (!isLivePriceGuardMarket(name)) return false;
+  if (
+    isLiveLineMissingRequiredTimestamp({
+      changedAt: oddLine?.changed_at,
+      marketName: name,
+      fixtureStatus: fixture?.status,
+    })
+  ) {
+    return true;
+  }
+  return isPriceStale(oddLine?.changed_at, fixture?.live_updated_at);
+}
+
+function kickoffInPast(startTime, now = new Date()) {
+  if (!startTime) return false;
+  const ts = new Date(startTime).getTime();
+  if (Number.isNaN(ts)) return false;
+  return ts <= now.getTime();
+}
+
+const MATCH_WINNER_MARKET_NAMES = [
+  "Match Winner",
+  "1X2",
+  "Full Time Result",
+  "Fulltime Result",
+  "Match Result",
+];
+
+const DOUBLE_CHANCE_MARKET_NAMES = ["Double Chance"];
+
+const COMBO_MARKET_NAMES = Object.freeze([
+  "Results/Both Teams Score",
+  "Result/Both Teams Score",
+  "Result/Total Goals",
+  "Total Goals/Both Teams To Score",
+]);
+
+const SIDE_LABELS = Object.freeze({
+  HOME: ["Home", "1", "H"],
+  DRAW: ["Draw", "X", "D"],
+  AWAY: ["Away", "2", "A"],
+});
+const BTTS_LABELS = Object.freeze({
+  YES: ["Yes", "YES", "Y"],
+  NO: ["No", "NO", "N"],
+});
+const OU_PREFIX = Object.freeze({
+  OVER: ["Over", "O", "OVER"],
+  UNDER: ["Under", "U", "UNDER"],
+});
+
+function titleCaseToken(token) {
+  const t = String(token || "").trim();
+  if (!t) return "";
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+}
+
+function titleCaseComboLabel(label) {
+  return String(label || "")
+    .split("/")
+    .map((part) => titleCaseToken(part))
+    .join("/");
+}
+
+function addComboPair(candidates, left, right) {
+  const l = String(left || "").trim();
+  const r = String(right || "").trim();
+  if (!l || !r) return;
+  for (const pair of [`${l}/${r}`, `${l}/${r}`.toUpperCase(), `${l}/${r}`.toLowerCase()]) {
+    candidates.add(pair);
+    candidates.add(titleCaseComboLabel(pair));
+  }
+}
+
+function expandComboLabelParts(candidates, parts) {
+  if (parts.length !== 2) return;
+  addComboPair(candidates, parts[0], parts[1]);
+  addComboPair(candidates, parts[1], parts[0]);
+}
+
+function expandResultBttsFromParams(candidates, params = {}) {
+  const side = String(params.side || "").toUpperCase().trim();
+  const btts = String(params.btts || "").toUpperCase().trim();
+  const sides = SIDE_LABELS[side] || [];
+  const picks = BTTS_LABELS[btts] || [];
+  for (const s of sides) {
+    for (const p of picks) {
+      addComboPair(candidates, s, p);
+      addComboPair(candidates, p, s);
+    }
+  }
+}
+
+function expandResultTotalFromParams(candidates, params = {}) {
+  const side = String(params.side || "").toUpperCase().trim();
+  const ouSide = String(params.ouSide || "").toUpperCase().trim();
+  const line = Number(params.line);
+  if (!Number.isFinite(line)) return;
+  const sides = SIDE_LABELS[side] || [];
+  const ouPrefixes = OU_PREFIX[ouSide] || [];
+  for (const s of sides) {
+    for (const ou of ouPrefixes) {
+      addComboPair(candidates, s, `${ou} ${line}`);
+      addComboPair(candidates, s, `${ou}${line}`);
+      addComboPair(candidates, `${ou} ${line}`, s);
+      addComboPair(candidates, `${ou}${line}`, s);
+    }
+  }
+}
+
+function expandTotalBttsFromParams(candidates, params = {}) {
+  const ouSide = String(params.ouSide || "").toUpperCase().trim();
+  const btts = String(params.btts || "").toUpperCase().trim();
+  const line = Number(params.line);
+  if (!Number.isFinite(line)) return;
+  const ouPrefixes = OU_PREFIX[ouSide] || [];
+  const picks = BTTS_LABELS[btts] || [];
+  for (const ou of ouPrefixes) {
+    for (const p of picks) {
+      addComboPair(candidates, `${ou} ${line}`, p);
+      addComboPair(candidates, `${ou}${line}`, p);
+      addComboPair(candidates, p, `${ou} ${line}`);
+      addComboPair(candidates, p, `${ou}${line}`);
+    }
+  }
+}
+
+export function buildSelectionCandidates({
+  selectionLabel,
+  marketCode,
+  marketParams,
+}) {
+  const raw = String(selectionLabel || "").trim();
+  if (!raw) return [];
+  const candidates = new Set([raw]);
+  const upper = raw.toUpperCase();
+  const lower = raw.toLowerCase();
+  const cap = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  candidates.add(upper);
+  candidates.add(lower);
+  candidates.add(cap);
+
+  // Unconditionally treat the short 1/X/2 tokens as winner aliases.
+  if (upper === "1") {
+    candidates.add("Home");
+    candidates.add("HOME");
+  }
+  if (upper === "X") {
+    candidates.add("Draw");
+    candidates.add("DRAW");
+  }
+  if (upper === "2") {
+    candidates.add("Away");
+    candidates.add("AWAY");
+  }
+  if (upper === "HOME") candidates.add("1");
+  if (upper === "DRAW") candidates.add("X");
+  if (upper === "AWAY") candidates.add("2");
+
+  // Double Chance: the UI/frontend submits the compact tokens 1X / 12 / X2,
+  // but ingestion stores API-Sports value strings ("Home/Draw", "Home/Away",
+  // "Draw/Away"). Bridge both directions so the resolver can match the stored
+  // odd line. Without this, every Double Chance leg resolves to no odd line
+  // and is wrongly reported as market_suspended.
+  const DOUBLE_CHANCE_ALIASES = {
+    "1X": ["Home/Draw", "HOME/DRAW", "Home or Draw"],
+    "X1": ["Home/Draw", "HOME/DRAW", "Home or Draw"],
+    "12": ["Home/Away", "HOME/AWAY", "Home or Away"],
+    "21": ["Home/Away", "HOME/AWAY", "Home or Away"],
+    "X2": ["Draw/Away", "DRAW/AWAY", "Draw or Away"],
+    "2X": ["Draw/Away", "DRAW/AWAY", "Draw or Away"],
+    "HOME/DRAW": ["1X"],
+    "HOME/AWAY": ["12"],
+    "DRAW/AWAY": ["X2"],
+    "HOME OR DRAW": ["1X"],
+    "HOME OR AWAY": ["12"],
+    "DRAW OR AWAY": ["X2"],
+  };
+  const dcAliases = DOUBLE_CHANCE_ALIASES[upper];
+  if (dcAliases) {
+    for (const alias of dcAliases) candidates.add(alias);
+  }
+
+  const code = String(marketCode || "").toUpperCase().trim();
+  const side = String(marketParams?.side || "").toUpperCase().trim();
+  if (code === "MATCH_WINNER" && side) {
+    if (side === "HOME") {
+      candidates.add("Home");
+      candidates.add("1");
+    }
+    if (side === "DRAW") {
+      candidates.add("Draw");
+      candidates.add("X");
+    }
+    if (side === "AWAY") {
+      candidates.add("Away");
+      candidates.add("2");
+    }
+  }
+
+  // Double Chance carried via market params (combination) — settlement stores
+  // the canonical "1X" | "12" | "X2", so expand those to the stored API-Sports
+  // value strings as well.
+  const combination = String(marketParams?.combination || "")
+    .toUpperCase()
+    .trim();
+  if (code === "DOUBLE_CHANCE" && combination) {
+    const comboAliases = DOUBLE_CHANCE_ALIASES[combination];
+    if (comboAliases) {
+      candidates.add(combination);
+      for (const alias of comboAliases) candidates.add(alias);
+    }
+  }
+
+  // Combination markets: the UI uppercases selection labels (e.g. "HOME/YES")
+  // but API-Sports stores mixed-case value strings ("Home/Yes", "1/YES",
+  // "YES/1"). Expand slash-separated aliases the same way Double Chance does.
+  if (raw.includes("/")) {
+    expandComboLabelParts(
+      candidates,
+      raw.split("/").map((p) => p.trim()).filter(Boolean),
+    );
+    candidates.add(titleCaseComboLabel(raw));
+  }
+  if (code === "RESULT_BTTS_FT") {
+    expandResultBttsFromParams(candidates, marketParams);
+  }
+  if (code === "RESULT_TOTAL_FT") {
+    expandResultTotalFromParams(candidates, marketParams);
+  }
+  if (code === "TOTAL_GOALS_BTTS") {
+    expandTotalBttsFromParams(candidates, marketParams);
+  }
+
+  return [...candidates].filter(Boolean);
+}
+
+export function buildMarketNameCandidates({ marketLabel, marketCode }) {
+  const names = new Set();
+  const label = String(marketLabel || "").trim();
+  if (label) names.add(label);
+  const code = String(marketCode || "").toUpperCase().trim();
+  if (
+    code === "MATCH_WINNER" ||
+    label.toLowerCase().includes("match") ||
+    label === "1X2" ||
+    label.toLowerCase() === "match result"
+  ) {
+    for (const n of MATCH_WINNER_MARKET_NAMES) names.add(n);
+  }
+  if (code === "DOUBLE_CHANCE" || label.toLowerCase().includes("double chance")) {
+    for (const n of DOUBLE_CHANCE_MARKET_NAMES) names.add(n);
+  }
+  if (
+    code === "RESULT_BTTS_FT" ||
+    code === "RESULT_TOTAL_FT" ||
+    code === "TOTAL_GOALS_BTTS" ||
+    label.includes("/")
+  ) {
+    for (const n of COMBO_MARKET_NAMES) names.add(n);
+  }
+  return [...names].filter(Boolean);
+}
+
+/**
+ * Pick the best matching odd line for one selection from an in-memory set of
+ * lines already scoped to that selection's fixture. Mirrors the previous
+ * per-selection DB lookup exactly: prefer an exact market-name match (highest
+ * odd), else fall back to any market exposing a matching value (highest odd).
+ */
+export function pickOddLineForSelection(fixtureLines, { valuesIn, marketNames }) {
+  if (!fixtureLines || fixtureLines.length === 0) return null;
+  const valueSet = new Set(valuesIn);
+  const valueMatches = fixtureLines.filter(
+    (line) => valueSet.has(line.value) && line.active !== false,
+  );
+  if (valueMatches.length === 0) return null;
+
+  // Equivalent to Prisma `orderBy: { odd: "desc" }` + `findFirst`.
+  const highestOdd = (rows) =>
+    rows.reduce(
+      (best, row) =>
+        best === null || Number(row.odd) > Number(best.odd) ? row : best,
+      null,
+    );
+
+  if (marketNames.length > 0) {
+    const nameSet = new Set(marketNames);
+    const exact = highestOdd(
+      valueMatches.filter((line) => nameSet.has(line.market?.name)),
+    );
+    if (exact) return exact;
+  }
+
+  // Fallback: any market in DB that happens to expose a matching value
+  // (rare, but safe — we still capture the real server-side odd).
+  return highestOdd(valueMatches);
+}
+
+/**
+ * Group legs by DB fixture id so each fixture gets one tight markets+oddLines
+ * fetch (union of that fixture's market names and selection value candidates).
+ */
+function groupSelectionMetaByFixture(selectionMeta, fixtureByApiId) {
+  /** @type {Map<string, { fixtureId: string, marketNames: Set<string>, valuesIn: Set<string> }>} */
+  const groups = new Map();
+  for (const meta of selectionMeta) {
+    const fixture = fixtureByApiId.get(meta.sel.apiFixtureId);
+    if (!fixture) continue;
+    let group = groups.get(fixture.id);
+    if (!group) {
+      group = {
+        fixtureId: fixture.id,
+        marketNames: new Set(),
+        valuesIn: new Set(),
+      };
+      groups.set(fixture.id, group);
+    }
+    for (const name of meta.marketNames) group.marketNames.add(name);
+    for (const value of meta.valuesIn) group.valuesIn.add(value);
+  }
+  return [...groups.values()].map((group) => ({
+    fixtureId: group.fixtureId,
+    marketNames: [...group.marketNames],
+    valuesIn: [...group.valuesIn],
+  }));
+}
+
+const oddLineSelect = {
+  odd: true,
+  value: true,
+  active: true,
+  changed_at: true,
+  provider_market_id: true,
+  provider_outcome_id: true,
+  provider_player_id: true,
+  market: { select: { name: true, fixture_id: true } },
+  bookmaker: { select: { api_bookmaker_id: true } },
+};
+
+async function fetchOddLinesForOneFixture(
+  prismaClient,
+  { fixtureId, marketNames, valuesIn },
+) {
+  if (!marketNames.length || !valuesIn.length) return [];
+
+  const markets = await prismaClient.fixtureMarket.findMany({
+    where: {
+      fixture_id: fixtureId,
+      name: { in: marketNames },
+    },
+    select: { id: true, name: true, fixture_id: true },
+  });
+  const marketIds = markets.map((m) => m.id);
+  if (!marketIds.length) return [];
+
+  return prismaClient.fixtureOddLine.findMany({
+    where: {
+      market_id: { in: marketIds },
+      value: { in: valuesIn },
+    },
+    select: oddLineSelect,
+  });
+}
+
+async function fetchOddLinesForSelections(
+  prismaClient,
+  selectionMeta,
+  fixtureByApiId,
+) {
+  const groups = groupSelectionMetaByFixture(selectionMeta, fixtureByApiId);
+  if (!groups.length) return [];
+
+  if (groups.length === 1) {
+    const lines = await perfTimed("resolve.prematch.fixtureOddLines", () =>
+      fetchOddLinesForOneFixture(prismaClient, groups[0]),
+    );
+    return lines;
+  }
+
+  const chunks = await perfTimed("resolve.prematch.fixtureOddLines", () =>
+    Promise.all(
+      groups.map((group) => fetchOddLinesForOneFixture(prismaClient, group)),
+    ),
+  );
+  return chunks.flat();
+}
+
+export async function resolvePrematchOdds({
+  prismaClient,
+  selections = [],
+  now = new Date(),
+}) {
+  const fixtureIds = [
+    ...new Set(selections.map((s) => s.apiFixtureId).filter(Boolean)),
+  ];
+  const fixtures = await perfTimed("resolve.prematch.fixtures", () =>
+    prismaClient.fixture.findMany({
+      where: { api_fixture_id: { in: fixtureIds } },
+      select: {
+        id: true,
+        api_fixture_id: true,
+        status: true,
+        start_time: true,
+        live_updated_at: true,
+      },
+    }),
+  );
+  const fixtureByApiId = new Map(fixtures.map((f) => [f.api_fixture_id, f]));
+
+  // Pre-compute each leg's candidate values/market names once, then resolve
+  // odd lines per fixture (parallel for multi-leg accas) with tight market
+  // name filters — not every market on every fixture in the slip.
+  const selectionMeta = selections.map((sel) => ({
+    sel,
+    valuesIn: buildSelectionCandidates({
+      selectionLabel: sel.label,
+      marketCode: sel.marketCode,
+      marketParams: sel.marketParams,
+    }),
+    marketNames: buildMarketNameCandidates({
+      marketLabel: sel.marketLabel,
+      marketCode: sel.marketCode,
+    }),
+  }));
+
+  const oddLines = await fetchOddLinesForSelections(
+    prismaClient,
+    selectionMeta,
+    fixtureByApiId,
+  );
+
+  const linesByFixtureId = new Map();
+  for (const line of oddLines) {
+    const fid = line.market?.fixture_id;
+    if (!fid) continue;
+    const bucket = linesByFixtureId.get(fid);
+    if (bucket) bucket.push(line);
+    else linesByFixtureId.set(fid, [line]);
+  }
+
+  const resolved = [];
+  for (const meta of selectionMeta) {
+    const sel = meta.sel;
+    const fixture = fixtureByApiId.get(sel.apiFixtureId);
+    if (!fixture) {
+      resolved.push({
+        index: sel.index,
+        code: "unknown_fixture",
+      });
+      continue;
+    }
+    let oddLine = pickOddLineForSelection(linesByFixtureId.get(fixture.id), {
+      valuesIn: meta.valuesIn,
+      marketNames: meta.marketNames,
+    });
+    if (oddLine && isStaleLiveOneXTwo(oddLine, fixture)) {
+      oddLine = null;
+    }
+    if (!oddLine && process.env.ODDS_ENGINE_DEBUG === "true") {
+      console.warn("[oddsEngine] no odd line found", {
+        fixtureId: fixture.id,
+        marketLabel: sel.marketLabel,
+        marketCode: sel.marketCode,
+        selectionLabel: sel.label,
+        candidates: meta.valuesIn,
+        marketNames: meta.marketNames,
+      });
+    }
+    const rawOdd = Number(oddLine?.odd);
+    const hasValidOdd = Number.isFinite(rawOdd) && rawOdd > 1;
+    const marketState = resolveMarketState({
+      fixtureStatus: fixture.status,
+      hasOddLine: hasValidOdd,
+    });
+    resolved.push({
+      index: sel.index,
+      fixtureId: fixture.id,
+      apiFixtureId: fixture.api_fixture_id,
+      fixtureStatus: fixture.status,
+      kickoffAt: fixture.start_time,
+      started: kickoffInPast(fixture.start_time, now),
+      marketState,
+      serverOdds: hasValidOdd ? rawOdd : NaN,
+      bookmakerApiId: oddLine?.bookmaker?.api_bookmaker_id ?? null,
+      serverMarketVersion: hasValidOdd
+        ? buildPrematchMarketVersion({
+            fixtureId: fixture.api_fixture_id,
+            marketLabel: sel.marketLabel,
+            selectionLabel: sel.label,
+            odd: rawOdd,
+            bookmakerApiId: oddLine?.bookmaker?.api_bookmaker_id,
+          })
+        : null,
+      serverUpdatedAt: fixture.start_time,
+      providerMarketId: oddLine?.provider_market_id ?? null,
+      providerOutcomeId: oddLine?.provider_outcome_id ?? null,
+      providerPlayerId: oddLine?.provider_player_id ?? 0,
+    });
+  }
+  return resolved;
+}

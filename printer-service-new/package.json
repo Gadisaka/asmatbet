@@ -1,0 +1,29 @@
+{
+  "name": "asmatbet-printer-service-new",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local ESC/POS print bridge for cashier thermal printers (Windows spooler)",
+  "main": "index.js",
+  "bin": "dist/server.cjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "build:exe": "node scripts/build-exe.mjs"
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/printer/**/*"
+    ],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "printer": "^0.4.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "pkg": "^5.8.1"
+  }
+}

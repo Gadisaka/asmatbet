@@ -1,0 +1,316 @@
+import axios from "axios";
+import {
+  SPORT_PROVIDERS,
+  getProviderConfig,
+  isSportEnabled,
+} from "./sportsRegistry.js";
+import { getCache, setCache, TTL } from "./cacheService.js";
+
+const REQUEST_TIMEOUT_MS = Number(process.env.API_SPORTS_TIMEOUT_MS || 30000);
+const MAX_NETWORK_RETRIES = Number(process.env.API_SPORTS_MAX_RETRIES || 2);
+const MAX_RATE_LIMIT_RETRIES = 3;
+const RETRY_BACKOFF_MS = 2000;
+const RATE_LIMIT_DELAY_MS = 7000;
+const DAILY_CALL_LIMIT = Number(process.env.API_SPORTS_DAILY_LIMIT || 75000);
+
+// The provider enforces a hard per-MINUTE ceiling (900/min on the Mega plan,
+// reported via the `x-ratelimit-limit` response header). All upstream calls
+// funnel through `request()`, and every queue in the worker (odds, live,
+// fixtures) shares this module, so a single global pacing gate is the only
+// place that can throttle the *aggregate* rate. Bursting past the ceiling is
+// what returns `errors.rateLimit` and yields zero usable data, so we default
+// to a conservative fraction of the cap and leave headroom for the API
+// process's own on-demand calls. Override with API_SPORTS_MAX_PER_MINUTE.
+const MAX_REQUESTS_PER_MINUTE = Math.max(
+  1,
+  Number(process.env.API_SPORTS_MAX_PER_MINUTE || 500),
+);
+const MIN_REQUEST_INTERVAL_MS = Math.ceil(60_000 / MAX_REQUESTS_PER_MINUTE);
+
+const clients = new Map();
+const dailyCalls = new Map();
+let lastResetDate = new Date().toISOString().split("T")[0];
+
+function resetDailyCountersIfNeeded() {
+  const today = new Date().toISOString().split("T")[0];
+  if (today !== lastResetDate) {
+    for (const [sport, used] of dailyCalls.entries()) {
+      console.log(
+        `[API-Sports/${sport}] daily counter reset – yesterday used ${used} calls`,
+      );
+    }
+    dailyCalls.clear();
+    lastResetDate = today;
+  }
+}
+
+function incrCount(sport) {
+  dailyCalls.set(sport, (dailyCalls.get(sport) ?? 0) + 1);
+}
+
+function countFor(sport) {
+  return dailyCalls.get(sport) ?? 0;
+}
+
+export function getDailyCallCount(sport = "football") {
+  resetDailyCountersIfNeeded();
+  return countFor(sport);
+}
+
+export function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// --- Global outbound rate gate -------------------------------------------
+// Serialises slot acquisition so concurrent callers (different queues firing
+// in parallel) are spaced at least MIN_REQUEST_INTERVAL_MS apart, keeping the
+// aggregate under MAX_REQUESTS_PER_MINUTE. `applyGlobalCooldown` lets a
+// rate-limit response push *every* pending caller back, not just itself.
+let nextSlotTs = 0;
+let rateGateChain = Promise.resolve();
+
+function applyGlobalCooldown(ms) {
+  nextSlotTs = Math.max(nextSlotTs, Date.now() + ms);
+}
+
+function acquireRateSlot() {
+  const wait = rateGateChain.then(async () => {
+    const now = Date.now();
+    const scheduled = Math.max(now, nextSlotTs);
+    nextSlotTs = scheduled + MIN_REQUEST_INTERVAL_MS;
+    const delay = scheduled - now;
+    if (delay > 0) await sleep(delay);
+  });
+  // Keep the chain alive even if a waiter rejects, so one failure can't wedge
+  // the gate for every subsequent call.
+  rateGateChain = wait.catch(() => {});
+  return wait;
+}
+
+function isRetriableNetworkError(err) {
+  const code = err?.code;
+  return (
+    code === "ECONNABORTED" ||
+    code === "ECONNRESET" ||
+    code === "ETIMEDOUT" ||
+    code === "EAI_AGAIN" ||
+    code === "ENOTFOUND"
+  );
+}
+
+function getClient(sport) {
+  if (clients.has(sport)) return clients.get(sport);
+
+  const cfg = getProviderConfig(sport);
+  if (!cfg) {
+    throw new Error(`[API-Sports] unknown sport "${sport}"`);
+  }
+  if (!cfg.apiKey) {
+    throw new Error(
+      `[API-Sports] ${sport}: missing API key (set env ${cfg.apiKeyEnv})`,
+    );
+  }
+
+  const client = axios.create({
+    baseURL: cfg.baseURL,
+    headers: { "x-apisports-key": cfg.apiKey },
+    timeout: REQUEST_TIMEOUT_MS,
+  });
+  clients.set(sport, client);
+  return client;
+}
+
+function buildCacheKey(sport, endpoint, params) {
+  const normalized = Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join("&");
+  return `apisports:${sport}:${endpoint}${normalized ? `?${normalized}` : ""}`;
+}
+
+function isCacheableRequest(endpoint, params) {
+  // Never cache live feeds – they need to be fresh every poll.
+  if (params && params.live) return false;
+  if (endpoint.includes("/live")) return false;
+  return true;
+}
+
+async function request(sport, endpoint, params = {}, attempt = 0, opts = {}, rateLimitAttempt = 0) {
+  resetDailyCountersIfNeeded();
+
+  if (!isSportEnabled(sport)) {
+    return [];
+  }
+
+  const cacheable = isCacheableRequest(endpoint, params) && !opts.skipCache;
+  const cacheKey = cacheable ? buildCacheKey(sport, endpoint, params) : null;
+  const ttl = opts.cacheTtl ?? TTL.API_UPSTREAM;
+
+  if (cacheKey) {
+    const cached = await getCache(cacheKey);
+    if (cached !== null) return cached;
+  }
+
+  if (countFor(sport) >= DAILY_CALL_LIMIT) {
+    console.warn(
+      `[API-Sports/${sport}] daily limit reached (${DAILY_CALL_LIMIT}), skipping ${endpoint}`,
+    );
+    return [];
+  }
+
+  let client;
+  try {
+    client = getClient(sport);
+  } catch (err) {
+    console.error(err.message);
+    return [];
+  }
+
+  try {
+    await acquireRateSlot();
+    incrCount(sport);
+    const { data } = await client.get(endpoint, { params });
+
+    if (countFor(sport) % 500 === 0) {
+      console.log(
+        `[API-Sports/${sport}] daily usage: ${countFor(sport)} / ${DAILY_CALL_LIMIT}`,
+      );
+    }
+
+    if (data.errors && Object.keys(data.errors).length > 0) {
+      if (data.errors.rateLimit) {
+        if (rateLimitAttempt >= MAX_RATE_LIMIT_RETRIES) {
+          console.error(
+            `[API-Sports/${sport}] ${endpoint} rate-limit retries exhausted (${MAX_RATE_LIMIT_RETRIES}), giving up`,
+          );
+          return [];
+        }
+        console.warn(
+          `[API-Sports/${sport}] rate limited, retry ${rateLimitAttempt + 1}/${MAX_RATE_LIMIT_RETRIES} in ${RATE_LIMIT_DELAY_MS}ms…`,
+        );
+        // Push the whole gate forward so concurrent callers also back off
+        // instead of every one independently slamming the ceiling again. The
+        // recursive call re-acquires a slot and naturally waits out the
+        // cooldown — no separate sleep needed.
+        applyGlobalCooldown(RATE_LIMIT_DELAY_MS);
+        return request(sport, endpoint, params, attempt, opts, rateLimitAttempt + 1);
+      }
+      console.error(
+        `[API-Sports/${sport}] ${endpoint} errors:`,
+        data.errors,
+      );
+      return [];
+    }
+
+    const response = data.response ?? [];
+    if (cacheKey && Array.isArray(response) && response.length > 0) {
+      await setCache(cacheKey, response, ttl);
+    }
+    return response;
+  } catch (err) {
+    if (isRetriableNetworkError(err) && attempt < MAX_NETWORK_RETRIES) {
+      const waitMs = RETRY_BACKOFF_MS * (attempt + 1);
+      console.warn(
+        `[API-Sports/${sport}] ${endpoint} network error (${err.code ?? err.message}), retry ${attempt + 1}/${MAX_NETWORK_RETRIES} in ${waitMs}ms`,
+      );
+      await sleep(waitMs);
+      return request(sport, endpoint, params, attempt + 1, opts, rateLimitAttempt);
+    }
+
+    console.error(
+      `[API-Sports/${sport}] ${endpoint} failed (params=${JSON.stringify(params)}):`,
+      err.response?.status ?? err.code ?? err.message,
+    );
+    return [];
+  }
+}
+
+/**
+ * Returns a provider-bound client with the same surface as the old
+ * apiFootballService (getLeagues, getTeams, getFixtures, getOdds,
+ * getLiveFixtures). Works for any sport registered in sportsRegistry.
+ */
+export function api(sport) {
+  if (!SPORT_PROVIDERS[sport]) {
+    throw new Error(`[API-Sports] unknown sport "${sport}"`);
+  }
+
+  const fixturesEndpoint =
+    SPORT_PROVIDERS[sport].fixturesEndpoint ?? "/fixtures";
+
+  return {
+    sport,
+    getLeagues: (opts) => request(sport, "/leagues", {}, 0, opts),
+    getTeams: (leagueId, season, opts) =>
+      request(sport, "/teams", { league: leagueId, season }, 0, opts),
+    getFixtures: (leagueId, season, date, opts) => {
+      const params = { league: leagueId };
+      if (season) params.season = season;
+      if (date) params.date = date;
+      return request(sport, fixturesEndpoint, params, 0, opts);
+    },
+    /**
+     * Bulk fetch every fixture (across ALL leagues) for a given calendar date.
+     * One upstream call returns the day's slate; the response includes the
+     * embedded league + team metadata so we can upsert everything inline.
+     */
+    getFixturesByDate: (date, opts) =>
+      request(sport, fixturesEndpoint, { date }, 0, opts),
+    /**
+     * Fetch a single fixture (status, scores, teams, league) by its
+     * API-Sports id. Used by the settlement zombie-rescue path to pull
+     * results for fixtures the bulk date sync no longer covers (e.g.
+     * leagues outside the ingest rank-gate). Never cached — a stuck
+     * fixture needs the freshest status available.
+     */
+    getFixtureById: (fixtureId, opts) =>
+      request(sport, fixturesEndpoint, { id: fixtureId }, 0, {
+        skipCache: true,
+        ...opts,
+      }),
+    getOdds: (fixtureId, opts) =>
+      request(sport, "/odds", { fixture: fixtureId }, 0, opts),
+    /**
+     * Fetch the event timeline (goals, cards, substitutions…) for a
+     * finalized fixture. Required by `GOALSCORER_*`, `PLAYER_CARDS`,
+     * and any market that requires the normalized event stream. Cached
+     * modestly — once a fixture is terminal the timeline rarely
+     * changes.
+     */
+    getFixtureEvents: (fixtureId, opts) =>
+      request(sport, "/fixtures/events", { fixture: fixtureId }, 0, opts),
+    /**
+     * Fetch match-level statistics (cards count, corners, shots) for a
+     * finalized fixture. Used by `CARDS_OVER_UNDER`,
+     * `CORNERS_OVER_UNDER`, and `PLAYER_SHOTS`.
+     */
+    getFixtureStatistics: (fixtureId, opts) =>
+      request(sport, "/fixtures/statistics", { fixture: fixtureId }, 0, opts),
+    getLiveFixtures: () =>
+      request(sport, fixturesEndpoint, { live: "all" }, 0, { skipCache: true }),
+    /**
+     * Fetch live odds for all in-play fixtures in one call.
+     * Returns real-time elapsed time, scores, and live odds.
+     */
+    getLiveOdds: () =>
+      request(sport, "/odds/live", {}, 0, { skipCache: true }),
+    /**
+     * Fetch live odds for a single fixture by API fixture ID.
+     * Used as fallback when Redis cache is empty during bet validation.
+     */
+    getSingleFixtureLiveOdds: (fixtureId) =>
+      request(sport, "/odds/live", { fixture: fixtureId }, 0, { skipCache: true }),
+    /**
+     * Fetch the full upstream bookmaker catalog (`/odds/bookmakers`).
+     * The list is essentially static (rarely changes) so we cache it
+     * aggressively – default 24h, override with `opts.cacheTtl`. The
+     * admin "Sync bookmakers from upstream" action passes
+     * `skipCache: true` to force a fresh pull.
+     */
+    getBookmakers: (opts) =>
+      request(sport, "/odds/bookmakers", {}, 0, {
+        cacheTtl: 24 * 60 * 60,
+        ...opts,
+      }),
+  };
+}
