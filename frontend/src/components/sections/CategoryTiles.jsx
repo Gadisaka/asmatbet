@@ -4,7 +4,6 @@ import AppIcon from "../common/AppIcon";
 import { homeCategoryTiles } from "../../data/homepageData";
 import { useTranslation } from "../../i18n/LanguageContext.jsx";
 import { fetchCasinoGames, fetchCasinoStatus } from "../../services/api";
-import { MOCK_GAMES_ENABLED, MOCK_INOUT_GAMES } from "../../data/mockGames.js";
 import kenoThumb from "../../assets/games/keno.png";
 import aviatorThumb from "../../assets/games/aviator.png";
 import bingoThumb from "../../assets/games/bingo.png";
@@ -101,22 +100,11 @@ function CategoryTiles() {
       .filter(Boolean);
   }, [casinoEnabled, catalog]);
 
-  const mockTiles = useMemo(() => {
-    if (!MOCK_GAMES_ENABLED) return [];
-    return MOCK_INOUT_GAMES.map((game) => ({
-      id: game.gameMode,
-      kind: "inout",
-      title: game.title,
-      imageUrl: game.iconUrl,
-      path: `/casino?launch=${game.gameMode}`,
-    }));
-  }, []);
-
   const allTiles = useMemo(() => {
     const allGames = tiles.filter((tile) => tile.id === "allGames");
     const featured = tiles.filter((tile) => tile.id !== "allGames");
-    return [...featured, ...mockTiles, ...allGames];
-  }, [tiles, mockTiles]);
+    return [...featured, ...allGames];
+  }, [tiles]);
 
   if (allTiles.length === 0) return null;
 
