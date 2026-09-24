@@ -7,7 +7,6 @@ import { useTranslation } from "../../i18n/LanguageContext.jsx";
 
 const footerNav = [
   { key: "sports", to: "/" },
-  { key: "live", to: "/live" },
   { key: "promotions", to: "/info/how-to-play" },
   { key: "cashbackRules", to: "/info/cashback-rules" },
   { key: "deposit", to: "/deposit" },

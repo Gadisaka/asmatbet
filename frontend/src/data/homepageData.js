@@ -12,7 +12,6 @@ export const topHeaderData = {
  */
 export const topNavItems = [
   { id: "home", icon: "home", path: "/" },
-  { id: "live", icon: "radio", path: "/live" },
   {
     id: "chickenRoad",
     icon: "bird",

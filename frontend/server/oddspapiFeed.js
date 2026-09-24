@@ -4,7 +4,7 @@ import { flagUrlForCategory } from "../../backend/services/providers/oddspapi/co
 
 const BASE_URL = "https://api.oddspapi.io";
 const SPORT_ID = 10;
-const BOOKMAKER = "1xbet";
+const BOOKMAKER = "pinnacle+30";
 const WINDOW_DAYS = 3;
 const CACHE_MS = 2 * 60 * 1000;
 const BATCH_SIZE = 5;

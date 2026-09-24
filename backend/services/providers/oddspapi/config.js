@@ -9,7 +9,7 @@ export function getOddspapiConfig() {
     apiKey: process.env.ODDSPAPI_API_KEY || "",
     baseUrl: process.env.ODDSPAPI_BASE_URL || "https://api.oddspapi.io",
     wsUrl: process.env.ODDSPAPI_WS_URL || "wss://api.oddspapi.io/v4/ws",
-    bookmaker: process.env.ODDSPAPI_BOOKMAKER || "1xbet",
+    bookmaker: process.env.ODDSPAPI_BOOKMAKER || "pinnacle+30",
     sportId: Number(process.env.ODDSPAPI_SPORT_ID || 10),
     batchSize: Math.min(
       5,

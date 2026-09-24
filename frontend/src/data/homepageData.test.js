@@ -5,7 +5,6 @@ describe("games lists", () => {
   it("exposes MichuBet-matching header game shortcuts and MORE lobby", () => {
     expect(topNavItems.map((item) => item.id)).toEqual([
       "home",
-      "live",
       "chickenRoad",
       "chickenCoin",
       "aviator",

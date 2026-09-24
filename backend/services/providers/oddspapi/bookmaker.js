@@ -14,10 +14,10 @@ export async function resolveOddspapiBookmaker(name) {
   if (persistBookmakerCache.row && Date.now() - persistBookmakerCache.at < CACHE_MS) {
     return persistBookmakerCache.row;
   }
-  const slug = String(name || getOddspapiConfig().bookmaker || "1xbet").trim() || "1xbet";
+  const slug = String(name || getOddspapiConfig().bookmaker || "pinnacle+30").trim() || "pinnacle+30";
   const row = await upsertNoTx(prisma.bookmaker, {
     where: { api_bookmaker_id: ODDSPAPI_BOOKMAKER_API_ID },
-    update: {},
+    update: { name: slug },
     create: { api_bookmaker_id: ODDSPAPI_BOOKMAKER_API_ID, name: slug },
   });
   persistBookmakerCache.at = Date.now();
