@@ -27,10 +27,10 @@
             "safari",
           ];
           var value = localStorage.getItem(key);
-          if (!value || ids.indexOf(value) === -1) value = "navy";
+          if (!value || ids.indexOf(value) === -1) value = "default";
           document.documentElement.setAttribute("data-theme", value);
         } catch (e) {
-          document.documentElement.setAttribute("data-theme", "navy");
+          document.documentElement.setAttribute("data-theme", "default");
         }
       })();
     </script>

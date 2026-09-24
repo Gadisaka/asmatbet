@@ -1,5 +1,5 @@
 export const THEME_STORAGE_KEY = "asmatbet:theme";
-export const DEFAULT_THEME_ID = "navy";
+export const DEFAULT_THEME_ID = "default";
 
 /**
  * Grid order matches Shamo’s picker (row-first, two columns):
